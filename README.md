@@ -4,6 +4,10 @@
 
 ## Table of Contents
 
+### Lab prerequisites
+
+- [Prerequisites for Workshop](prereq.md)
+
 ### Lab 1
 
 - [Container Quick Start with Podman](lab1/lab1.md)
