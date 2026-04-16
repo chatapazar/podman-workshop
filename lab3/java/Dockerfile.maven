@@ -1,0 +1,23 @@
+# Build stage builds the JAR
+FROM maven:3 AS builder
+
+# make build directory
+RUN mkdir /build
+
+# Copy Files into build container
+COPY . /build
+
+# Change to build directroy
+WORKDIR /build
+
+# package the java application
+RUN mvn package
+
+# Final Stage copies the JAR from previous builder and setups to run
+FROM eclipse-temurin:17.0.18_8-jre-ubi10-minimal
+
+# Copy JAR from builder changing ownership to java user
+COPY --from=builder /build/target/*.jar app.jar
+
+# Set entry point to start app
+ENTRYPOINT ["java","-jar","/app.jar"]

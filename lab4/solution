@@ -1,0 +1,49 @@
+
+
+
+
+podman pod create --name sql-pod -p 9876:80 -p 5432:5432
+
+podman run -d --pod sql-pod \
+  --name postgres-db \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=mypassword \
+  docker.io/library/postgres:latest
+
+podman run -d --pod sql-pod \
+  --name pgadmin-ui \
+  -e PGADMIN_DEFAULT_EMAIL=admin@example.com \
+  -e PGADMIN_DEFAULT_PASSWORD=adminpass \
+  docker.io/dpage/pgadmin4:latest
+
+
+
+
+Open your browser and go to http://localhost:9876.
+Log in with the credentials used in Step 3 (admin@example.com / adminpass).
+Click Add New Server.
+In the Connection tab:
+Host name/address: localhost (because they share the same pod network).
+Port: 5432.
+Username: postgres.
+Password: The password set in Step 2 (mysecretpassword). 
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL
+);
+
+INSERT INTO users (name, email) VALUES 
+('Alice', 'alice@example.com'),
+('Bob', 'bob@example.com');
+
+
+POSTGRESQL_USER  POSTGRESQL_PASSWORD  POSTGRESQL_DATABASE
+
+\list
+\c db
+
+
+/var/lib/pgsql/data
+bdaeff9a342407a71a774e8705f59dbf98e78d21a4953d00a48922d629f09e65
