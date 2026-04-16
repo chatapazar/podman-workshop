@@ -52,4 +52,4 @@
 - after register, try to login to verify account
 
 ## Back to Table of Content
-- [Introduction to Container Technology with Podman](../README.md)
+- [Introduction to Container Technology with Podman](README.md)
