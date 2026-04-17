@@ -10,7 +10,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   const currentTime = new Date();
   res.json({
-    message: 'Hello from TypeScript Docker!',
+    message: 'Hello from TypeScript Podman!',
     formattedTime: format(currentTime, 'PPpp'),
     timestamp: currentTime.toISOString()
   });

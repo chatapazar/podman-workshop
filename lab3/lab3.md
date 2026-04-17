@@ -7,6 +7,8 @@
   - [Build Python Container](#build-python-container)
   - [Build Node.JS Container](#build-nodejs-container)
   - [Build Java Container](#build-java-container)
+  - [Tag \& Push Image](#tag--push-image)
+  - [Quick challenges](#quick-challenges)
   - [Back to Table of Content](#back-to-table-of-content)
 
 <!-- /TOC -->
@@ -67,6 +69,8 @@ Since the purpose of this lab is to introduce how to build containers for each p
   ![](../images/lab3/multi-stage.jpg)
 
 ## Build Python Container
+
+  <img src="../images/lab3/python.png" alt="python" width="200"/>
 
 - Review source code, From VSCode, go to podman-workshop > lab3 > python
   
@@ -200,6 +204,7 @@ Since the purpose of this lab is to introduce how to build containers for each p
   ```
   podman ps
   ```
+  
   example output
 
   ![](../images/lab3/lab3-11.png)
@@ -218,6 +223,7 @@ Since the purpose of this lab is to introduce how to build containers for each p
   podman stop my-python-app
   podman rm my-python-app
   ```
+  
   example output    
 
   ![](../images/lab3/lab3-13.png)
@@ -229,13 +235,405 @@ Since the purpose of this lab is to introduce how to build containers for each p
   ```
   podman ps
   ```
+  
   example output
 
   ![](../images/lab3/lab3-14.png)                
 
 ## Build Node.JS Container
 
+  <img src="../images/lab3/nodejs.svg" alt="node.js" width="200"/>
+
+- Review source code, From VSCode, go to podman-workshop > lab3 > nodejs
+
+- Review file podman-workshop > lab3 > nodejs > src > server.ts, check port = 3000 and message = `Hello from TypeScript Podman!`
+
+  ![](../images/lab3/lab3-15.png)  
+
+- Review file podman-workshop > lab3 > nodejs > package.json and package-lock.json  
+
+  ![](../images/lab3/lab3-16.png)
+
+- `Note:` In Node.js, package.json and package-lock.json are essential files used by the npm (Node Package Manager) to manage a project's dependencies, metadata, and scripts. While they work together, they serve distinct purposes in ensuring your application runs consistently across different environments.  
+
+- Review file podman-workshop > lab3 > nodejs > tsconfig.json 
+
+  ![](../images/lab3/tsconfig.png)
+
+- `Note:` A tsconfig.json file is the configuration file for a TypeScript project. Its presence in a directory indicates that the directory is the root of a TypeScript project and specifies the compiler options required to compile the code. 
+
+- Review file podman-workshop > lab3 > nodejs > Dockerfile  
+
+  ![](../images/lab3/lab3-17.png)
+
+- Edit Dockerfile in Stage 1 with below code.
+  
+  - used `node:22-alpine` as builder image 
+  
+  - set work directory as `/app`
+
+  - copy package.json and package-lock.json to folder /app (represent with `.`) 
+  
+  - run npm ci for install dependencies
+  
+  - copy dependencies to folder /app
+
+  - compile with npm run build
+  
+  ```
+  # Stage 1: Build everything
+  FROM node:22-alpine AS builder
+  WORKDIR /app
+  COPY package.json package-lock.json ./
+  RUN npm ci
+  COPY . .
+  RUN npm run build
+  ```
+
+- Edit Dockerfile in Stage 2 with below code.
+  
+  - used `node:22-alpine` as runtime image 
+  
+  - set work directory as `/app`
+
+  - copy folder /app/dist from builder to current image folder dist
+
+  - Copy package.json package-lock.json to work folder
+
+  - clean install exclude dev dependencies
+  
+  - set default command to run `node dist/server.js`
+  
+  ```
+  # Stage 2: Create a smaller production image
+  FROM node:22-alpine
+  WORKDIR /app
+  COPY --from=builder /app/dist ./dist
+  COPY package.json package-lock.json ./
+  RUN npm ci --omit=dev
+  CMD ["node", "dist/server.js"]
+  ```
+
+- `Note:` The command npm ci --omit=dev is used to perform a "clean install" of your project's dependencies while specifically excluding those listed in the devDependencies section of your package.json. It is primarily used in production environments and CI/CD pipelines to create a lightweight, production-ready node_modules folder. 
+
+- Review final Dockerfile 
+
+  ![](../images/lab3/lab3-18.png)  
+
+- build image with podman, open your terminal (command prompt/powershell)
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  cd <your directory>/podman-workshop/lab3/nodejs
+  podman build -f Dockerfile -t my-nodejs .
+  ```
+
+  example output
+
+  ![](../images/lab3/lab3-19.png)  
+
+- `Note:` Since there is no base image on the local machine, pulling the image will take time. This can reduce build time by pulling a pre-built image.
+  
+- Check images `my-python` after build
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman images
+  ```
+
+  example output
+
+  ![](../images/lab3/lab3-20.png)  
+
+- Run Container with podman run 
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman run -d -p 3000:3000 --name my-nodejs-app localhost/my-nodejs
+  ```
+
+- Check container process.
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman ps
+  ```
+  
+  example output
+
+  ![](../images/lab3/lab3-21.png)
+
+- Open Browser to `http://locahost:3000`
+
+  example output
+  
+  ![](../images/lab3/lab3-22.png)
+
+- Stop and remove container
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman stop my-nodejs-app
+  podman rm my-nodejs-app
+  ```
+  
+  example output    
+
+  ![](../images/lab3/lab3-23.png)
+
+- Check container process.
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman ps
+  ```
+  
+  example output
+
+  ![](../images/lab3/lab3-24.png)   
+
 ## Build Java Container
+
+  <img src="../images/lab3/java.svg" alt="node.js" width="200"/>
+
+- Review source code, From VSCode, go to podman-workshop > lab3 > java
+
+- Review file podman-workshop > lab3 > java > src > main > java > com > example > springboot > HelloController.java
+
+  ![](../images/lab3/lab3-25.png)  
+
+- Review file podman-workshop > lab3 > java > pom.xml 
+
+  ![](../images/lab3/lab3-26.png)
+
+- `Note:` A Project Object Model (POM) file, named pom.xml, is the fundamental unit of work in Apache Maven. It is an XML file located in the project's base directory that contains all the configuration details required to build a project, manage its dependencies, and define its lifecycle. 
+
+- `Note:` [Apache Maven](https://maven.apache.org/) is a build tool for Java projects. Using a project object model (POM), Maven manages a project's compilation, testing, and documentation.
+
+- Review file podman-workshop > lab3 > java > Dockerfile  
+
+  ![](../images/lab3/lab3-27.png)
+
+- Edit Dockerfile in Build Stage with below code.
+  
+  - used `maven:3` as builder image 
+  
+  - create folder build
+
+  - copy all file to build folder
+  
+  - set work directory to build folder
+  
+  - run maven build
+  
+  ```
+  # Build stage builds the JAR
+  FROM maven:3 AS builder
+
+  # make build directory
+  RUN mkdir /build
+
+  # Copy Files into build container
+  COPY . /build
+
+  # Change to build directroy
+  WORKDIR /build
+
+  # package the java application
+  RUN mvn package
+  ```
+
+- Edit Dockerfile in Final Stage with below code.
+  
+  - used `eclipse-temurin:17.0.18_8-jre-ubi10-minimal` as runtime image 
+  
+  - copy jar file from builder stage to app.jar
+
+  - set entry point to start app with java -jar app.jar
+  
+  ```
+  # Final Stage copies the JAR from previous builder and setups to run
+  FROM eclipse-temurin:17.0.18_8-jre-ubi10-minimal
+
+  # Copy JAR from builder changing ownership to java user
+  COPY --from=builder /build/target/*.jar app.jar
+
+  # Set entry point to start app
+  ENTRYPOINT ["java","-jar","/app.jar"]
+  ```
+
+- Review final Dockerfile 
+
+  ![](../images/lab3/lab3-28.png)  
+
+- build image with podman, open your terminal (command prompt/powershell)
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  cd <your directory>/podman-workshop/lab3/java
+  podman build -f Dockerfile -t my-java .
+  ```
+
+  example output
+
+  ![](../images/lab3/lab3-29.png)  
+
+- `Note:` Since there is no base image on the local machine, pulling the image will take time. This can reduce build time by pulling a pre-built image.
+  
+- Check images `my-java` after build
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman images
+  ```
+
+  example output
+
+  ![](../images/lab3/lab3-30.png)  
+
+- Run Container with podman run 
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman run -d -p 8080:8080 --name my-java-app localhost/my-java
+  ```
+
+- Check container process.
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman ps
+  ```
+  
+  example output
+
+  ![](../images/lab3/lab3-31.png)
+
+- Open Browser to `http://locahost:8080`
+
+  example output
+  
+  ![](../images/lab3/lab3-32.png)
+
+- Stop and remove container
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman stop my-java-app
+  podman rm my-java-app
+  ```
+  
+  example output    
+
+  ![](../images/lab3/lab3-33.png)
+
+- Check container process.
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman ps
+  ```
+
+  example output
+
+  ![](../images/lab3/lab3-24.png)   
+
+## Tag & Push Image
+
+- `The podman login` command is used to authenticate with a container registry (such as Docker Hub, Quay.io, or a private registry). Once logged in, you can pull private images or push your own images to the registry. 
+
+- `The podman tag` command adds an additional name (and optionally a version tag) to a local image. This does not duplicate the image data; it simply creates a new reference pointing to the same Image ID. 
+
+- `The podman push` command is used to upload container images from your local storage to a remote container registry or other storage destinations. It is a direct, daemonless alternative to the docker push command. 
+
+- Review current images in local machine
+  
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman images
+  ```
+
+  example output   
+
+  ![](../images/lab3/lab3-34.png)   
+
+- Login to Dockerhub with your username
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman login docker.io
+  username: <yourusername>
+  password: <yourpassword>
+  ```
+  
+  example output   
+  
+  ![](../images/lab3/lab3-35.png)   
+
+- Check login status
+
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman login --get-login docker.io
+  ```
+  
+  example output   
+  
+  ![](../images/lab3/lab3-36.png)   
+
+- Tag your java image to v1.0
+  
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman tag localhost/my-java docker.io/<username>/my-java:v1.0
+  podman images
+  ```
+  
+  example output   
+  
+  ![](../images/lab3/lab3-37.png)    
+
+- push image to image repository 
+  
+- type below command or copy and paste to your terminal.
+  
+  ```
+  podman push docker.io/<username>/my-java:v1.0
+  ```
+  
+  example output   
+  
+  ![](../images/lab3/lab3-38.png)    
+
+- Open Browser and Login to your username at [DockerHub](https://hub.docker.com/)
+  
+- Check new image push to your repository
+  
+  ![](../images/lab3/lab3-39.png)    
+  
+  ![](../images/lab3/lab3-40.png)        
+
+## Quick challenges
+
+- What is the image in the picture?
+
+  ![](../images/lab3/quick.png)   
 
 ## Back to Table of Content
 
